@@ -72,8 +72,8 @@ model User {
   pesusrn               String   @unique
   prn                   String?
   profileData           Json
-  encryptedCredentials  String?  // For hard-refresh
-  lastHardRefresh       DateTime?
+  encryptedCredentials  String?  // For fetch-live
+  lastliveFetch         DateTime?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }
