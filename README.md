@@ -22,11 +22,11 @@ This OAuth2 server allows applications to authenticate PESU students and access 
     "dependencies": {
         "@prisma/client": "latest",
         "prisma": "latest",
-        "jose": "latest",
-        "bcryptjs": "latest",
-        "nanoid": "latest",
-        "zod": "latest",
-        "helmet": "latest"
+        "jose": "latest", // For PESU credential encryption
+        "bcryptjs": "latest", // For client secret hashing
+        "nanoid": "latest", // For OAuth2 and admin session tokens
+        "zod": "latest", // For request validation
+        "helmet": "latest" // For security headers
     }
 }
 ```
@@ -34,12 +34,17 @@ This OAuth2 server allows applications to authenticate PESU students and access 
 ## Environment Variables
 
 ```env
+# Database
 MONGODB_URL=mongodb://localhost:27017/pesu-oauth2
-JWT_SECRET=your-super-secret-key
-ENCRYPTION_KEY=your-encryption-key-for-credentials
+
+# Encryption key for user credentials (AES-256, exactly 32 characters)
+ENCRYPTION_KEY=your-32-character-encryption-key-here
+
+# PESU Auth Integration
 PESU_AUTH_URL=https://pesu-auth.onrender.com/authenticate
+
+# Your OAuth2 server base URL
 OAUTH_BASE_URL=https://your-domain.com
-NEXTAUTH_SECRET=your-nextauth-secret
 ```
 
 ## Database Schema
@@ -132,6 +137,18 @@ model Admin {
   createdAt   DateTime @default(now())
   createdBy   String?
   active      Boolean  @default(true)
+}
+```
+
+#### AdminSessions
+
+```prisma
+model AdminSession {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionId String   @unique
+  adminId   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 ```
 
@@ -353,6 +370,7 @@ scope=profile:name:read classes:enrolled:read attendance:summary:read
 -   **Access Tokens**: 7 days (nanoid, 32 chars)
 -   **Refresh Tokens**: 30 days (nanoid, 48 chars)
 -   **Authorization Codes**: 10 minutes (nanoid, 24 chars)
+-   **Admin Sessions**: 8 hours (nanoid, 32 chars)
 
 ### Token Format
 
@@ -360,6 +378,7 @@ Using `nanoid` instead of JWT for shorter tokens:
 
 -   Access token: `nanoid(32)` → ~21 characters
 -   Refresh token: `nanoid(48)` → ~32 characters
+-   Admin session: `nanoid(32)` → ~21 characters
 
 Token metadata stored in database with nanoid as lookup key.
 
@@ -375,10 +394,18 @@ Token metadata stored in database with nanoid as lookup key.
 
 ### Data Protection
 
--   User credentials encrypted with AES-256-GCM
+-   User credentials encrypted with AES-256-GCM (via jose)
+-   Client secrets hashed with bcryptjs before storage
 -   Secure token generation with nanoid
 -   PKCE support for public clients (future)
 -   State parameter validation
+
+### Client Secret Security
+
+-   Client secrets are hashed using bcryptjs with salt rounds
+-   Plain text secrets are only shown once during registration
+-   Secret verification during token exchange uses bcryptjs.compare()
+-   No way to retrieve original secret after hashing
 
 ### Headers & Middleware
 
