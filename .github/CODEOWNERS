@@ -1,0 +1,7 @@
+# High level team ownership
+* @pesu-dev/oauth2-maintainers
+
+# Specific file ownership
+.github/ @sach-12 @aditeyabaral
+LICENSE @sach-12 @aditeyabaral
+README.md @sach-12 @aditeyabaral
