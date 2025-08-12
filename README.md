@@ -69,11 +69,11 @@ model OAuth2Application {
 ```prisma
 model User {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
-  pesusrn               String   @unique
-  prn                   String?
+  pesuprn               String   @unique
+  srn                   String?
   profileData           Json
-  encryptedCredentials  String?  // For fetch-live
-  lastliveFetch         DateTime?
+  encryptedCredentials  String?  // For fetch_live
+  lastFetchLive         DateTime?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }
@@ -127,7 +127,7 @@ model RefreshToken {
 model Admin {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   email       String   @unique
-  pesusrn     String   @unique
+  pesuprn     String   @unique
   permissions String[] // ['clients', 'users', 'analytics']
   createdAt   DateTime @default(now())
   createdBy   String?
