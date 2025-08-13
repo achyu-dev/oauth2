@@ -157,6 +157,8 @@ model AdminSession {
 
 ### OAuth2 Endpoints
 
+In accordance with [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749), the OAuth2 endpoint URLs will only accept a content type of `application/x-www-form-urlencoded`. JSON content is not permitted and will return an error.
+
 #### `POST /api/oauth2/authorize`
 
 Authorization endpoint for OAuth2 flow.
@@ -173,6 +175,7 @@ Authorization endpoint for OAuth2 flow.
 
 -   Redirects to PESU authentication
 -   After auth, redirects to `redirect_uri` with authorization code
+-   Authorization code expires in 10 minutes
 
 #### `POST /api/oauth2/token`
 
@@ -303,6 +306,87 @@ Monitor active tokens (admin only).
 #### `GET /api/admin/stats`
 
 Usage analytics (admin only).
+
+## Error Responses
+
+All OAuth2 endpoints return standardized error responses following [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749#section-5.2) specifications.
+
+### OAuth2 Error Response Format
+
+```json
+{
+    "error": "invalid_request",
+    "error_description": "The request is missing a required parameter",
+    "error_uri": "https://your-domain.com/docs/errors#invalid_request"
+}
+```
+
+### Common Error Codes
+
+#### Authorization Endpoint Errors
+
+-   **`invalid_request`** - Missing or malformed parameters
+-   **`unauthorized_client`** - Client not authorized for this grant type
+-   **`access_denied`** - User denied the authorization request
+-   **`unsupported_response_type`** - Response type not supported
+-   **`invalid_scope`** - Requested scope is invalid or unknown
+-   **`server_error`** - Internal server error occurred
+-   **`temporarily_unavailable`** - Service temporarily overloaded
+
+#### Token Endpoint Errors
+
+-   **`invalid_request`** - Missing or malformed parameters
+-   **`invalid_client`** - Client authentication failed
+-   **`invalid_grant`** - Authorization code/refresh token invalid
+-   **`unauthorized_client`** - Client not authorized for this grant
+-   **`unsupported_grant_type`** - Grant type not supported
+-   **`invalid_scope`** - Requested scope exceeds granted scope
+
+#### User API Errors
+
+-   **`invalid_token`** - Access token expired or invalid
+-   **`insufficient_scope`** - Token lacks required scope for resource
+-   **`rate_limit_exceeded`** - Too many requests (includes retry-after header)
+
+### HTTP Status Codes
+
+-   **400 Bad Request** - Invalid request parameters
+-   **401 Unauthorized** - Authentication required or failed
+-   **403 Forbidden** - Insufficient permissions
+-   **404 Not Found** - Resource not found
+-   **429 Too Many Requests** - Rate limit exceeded
+-   **500 Internal Server Error** - Server error
+-   **503 Service Unavailable** - PESU Auth temporarily unavailable
+
+## Monitoring & Logging _(Future Scope)_
+
+### Audit Logging
+
+-   Token generation and revocation events
+-   Failed authentication attempts
+-   Admin actions and permission changes
+-   Client registration and modifications
+
+### Security Monitoring
+
+-   Rate limiting bypass attempts
+-   Suspicious authorization patterns
+-   Token usage anomalies
+-   Geographic access patterns
+
+### Performance Metrics
+
+-   Response times for OAuth2 endpoints
+-   PESU Auth API latency and success rates
+-   Database query performance
+-   Token validation performance
+
+### Alerting
+
+-   Failed authentication rate thresholds
+-   PESU Auth service downtime
+-   Database connection issues
+-   Encryption key rotation failures
 
 ## Available Scopes
 
@@ -464,9 +548,24 @@ Following Discord OAuth2 model:
 
 ### Strategy
 
--   URL-based versioning: `/api/v1/`, `/api/v2/`
--   Graceful deprecation (12 months support)
--   Clear migration documentation
+-   **Base URL**: `/api/` automatically points to the latest version
+-   **Versioned URLs**: `/api/v{version}/` for specific versions (e.g., `/api/v1/`, `/api/v2/`)
+-   **Graceful deprecation**: 12 months support for older versions
+-   **Clear migration documentation** for version transitions
+
+### URL Structure Example
+
+```
+# Latest version (automatically updated)
+https://your-domain.com/api/user
+
+# Explicit version specification
+https://your-domain.com/api/v1/user
+https://your-domain.com/api/v2/user
+
+# Base URL redirects to latest
+https://your-domain.com/api/user → https://your-domain.com/api/v1/user
+```
 
 ### Deprecation Headers
 
@@ -479,6 +578,10 @@ Link: </api/v2/user>; rel="successor-version"
 ### Future Versions
 
 ```
+/api/v1/              # Current version
+├── user              # User profile endpoint
+└── (current scopes)
+
 /api/v2/              # Future enhanced version
 ├── user              # Enhanced user endpoint
 └── academic/         # New scope categories
