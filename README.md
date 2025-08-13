@@ -39,6 +39,7 @@ MONGODB_URL=mongodb://localhost:27017/pesu-oauth2
 
 # Encryption key for user credentials (AES-256, exactly 32 characters)
 ENCRYPTION_KEY=your-32-character-encryption-key-here
+ENCRYPTION_KEY_VERSION=1
 
 # PESU Auth Integration
 PESU_AUTH_URL=https://pesu-auth.onrender.com/authenticate
@@ -407,6 +408,13 @@ Token metadata stored in database with nanoid as lookup key.
 -   Secret verification during token exchange uses bcryptjs.compare()
 -   No way to retrieve original secret after hashing
 
+### Encryption Key Rotation
+
+-   Automated key rotation via GitHub Actions every 3 months
+-   Manual rotation trigger available for immediate updates
+-   Zero-downtime migration of existing encrypted credentials
+-   Versioned encryption keys for seamless transitions
+
 ### Headers & Middleware
 
 -   Helmet for security headers
@@ -525,6 +533,64 @@ Link: </api/v2/user>; rel="successor-version"
 -   [ ] Admin dashboard
 -   [ ] Developer documentation
 -   [ ] API examples and SDKs
+
+## Encryption Key Rotation
+
+### Overview
+
+The system supports automated encryption key rotation to enhance security. User credentials are encrypted with versioned keys, allowing seamless transitions during rotation.
+
+### GitHub Actions Setup
+
+#### Required Repository Secrets
+
+```
+MONGODB_URL                    # Database connection string
+ENCRYPTION_KEY                # Current encryption key (32 characters)
+ENCRYPTION_KEY_VERSION        # Current version number (e.g., "1")
+GH_ADMIN_TOKEN                # GitHub Personal Access Token (repo scope)
+NETLIFY_ACCESS_TOKEN          # Netlify API token
+NETLIFY_SITE_ID               # Netlify site identifier
+```
+
+#### Implementation Files
+
+The key rotation system requires two files:
+
+1. **`.github/workflows/key-rotation.yml`** - GitHub Actions workflow
+
+    - Manual trigger via `workflow_dispatch`
+    - Automatic quarterly rotation via cron schedule
+    - Generates new encryption keys securely
+    - Updates GitHub secrets and Netlify environment variables
+    - Masks sensitive values in action logs
+
+2. **`scripts/rotate-keys.js`** - Database migration script
+
+    - Finds users with outdated encryption key versions
+    - Decrypts credentials with current key
+    - Re-encrypts with new key version
+    - Updates user records with new encryption version
+    - Provides migration progress logging
+
+### Usage
+
+#### Manual Rotation
+
+Trigger rotation immediately through GitHub Actions interface or via GitHub CLI.
+
+#### Automatic Schedule
+
+-   Runs every 3 months automatically
+-   Updates all platforms simultaneously
+-   Zero downtime for users
+
+### Security Benefits
+
+-   **Periodic rotation** limits exposure time of compromised keys
+-   **Versioned keys** allow gradual migration without service interruption
+-   **Automated process** eliminates manual key management errors
+-   **Cross-platform sync** ensures consistency across GitHub and Netlify
 
 ## Usage Examples
 
