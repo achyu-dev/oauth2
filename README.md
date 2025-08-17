@@ -15,6 +15,10 @@ This OAuth2 server allows applications to authenticate PESU students and access 
 -   **Security**: jose, bcryptjs, helmet
 -   **Package Manager**: pnpm
 
+## Security
+
+For comprehensive security information including data protection, encryption, rate limiting, and vulnerability disclosure, see [SECURITY.md](.github/SECURITY.md).
+
 ## Dependencies
 
 ```json
@@ -39,7 +43,6 @@ MONGODB_URL=mongodb://localhost:27017/pesu-oauth2
 
 # Encryption key for user credentials (AES-256, exactly 32 characters)
 ENCRYPTION_KEY=your-32-character-encryption-key-here
-ENCRYPTION_KEY_VERSION=1
 
 # PESU Auth Integration
 PESU_AUTH_URL=https://pesu-auth.onrender.com/authenticate
@@ -155,15 +158,35 @@ model AdminSession {
 
 ## API Endpoints
 
-### OAuth2 Endpoints
+### OAuth2 Architecture Overview
 
-In accordance with [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749), the OAuth2 endpoint URLs will only accept a content type of `application/x-www-form-urlencoded`. JSON content is not permitted and will return an error.
+The OAuth2 implementation separates user-facing web interfaces from backend API endpoints:
 
-#### `POST /api/oauth2/authorize`
+-   **Web Interfaces** (`/oauth2/*`): User-facing pages for authorization flow
+-   **API Endpoints** (`/api/oauth2/*`): Backend processing and token management
 
-Authorization endpoint for OAuth2 flow.
+### OAuth2 Web Interfaces
 
-**Parameters:**
+#### `GET /oauth2/login`
+
+User authentication page for the OAuth2 server.
+
+**Purpose:**
+
+-   Authenticates users with PESU credentials
+-   Creates user session for OAuth2 server
+-   Redirects back to authorization flow after successful login
+
+**Query Parameters:**
+
+-   `redirect_uri` (automatic): URL to redirect back to after login
+-   Preserves original authorization parameters for seamless flow continuation
+
+#### `GET /oauth2/authorize`
+
+User-facing authorization webpage where the OAuth2 flow begins.
+
+**Query Parameters:**
 
 -   `client_id` (required): Client application identifier
 -   `redirect_uri` (required): Callback URL
@@ -171,11 +194,95 @@ Authorization endpoint for OAuth2 flow.
 -   `response_type` (required): Must be "code"
 -   `state` (optional): CSRF protection
 
+**Detailed Flow:**
+
+1. **Initial Redirect**: Client redirects user to this webpage with query parameters
+2. **Session Check**: Check if user has an active session on our OAuth server
+3. **Login Required**: If no session exists, redirect to login page (`/oauth2/login`)
+4. **Post-Login Redirect**: After successful login, redirect back to `/oauth2/authorize` with original parameters
+5. **Parameter Validation**: Before page loads, validate query parameters using `POST /api/oauth2/authorize`
+6. **Consent Screen**: If validation passes, display consent screen showing:
+    - Client application requesting access
+    - Specific permissions/scopes being requested
+    - Redirect destination after authorization
+7. **User Decision**: User clicks "Continue" (approve) or "Deny"
+8. **Code Generation**: On approval, generate temporary authorization code
+9. **Final Redirect**: Redirect to client's `redirect_uri` with code and state (if provided)
+10. **Code Expiration**: Authorization code expires in 10 minutes
+
+#### `GET /oauth2/register`
+
+Client registration webpage for developers to register new OAuth2 applications.
+
+**Eligibility Requirements:**
+
+-   Must be a PESU student with a verified email address
+-   Must authenticate with PESU credentials before accessing registration form
+-   Email verification status is checked against PESU records
+
+**Purpose:**
+
+-   Provides a secure web form for OAuth2 client registration
+-   Handles input validation and error display
+-   Generates and securely displays client credentials
+-   Implements rate limiting for registration attempts
+
+**Form Fields:**
+
+-   `name` (required): Application name for user recognition
+-   `description` (optional): Brief description of the application
+-   `redirect_uris` (required): List of valid callback URLs for OAuth2 flow
+-   `scopes` (required): Checkbox selection of requested permission scopes
+
+**Security Features:**
+
+-   CSRF protection with form tokens
+-   Input validation and sanitization
+-   Rate limiting (10 registrations/hour per IP)
+-   Client secret displayed only once for security
+-   Secure random generation of client credentials
+
+**Terms Compliance:**
+
+-   All registered applications must comply with PESU OAuth2 Terms of Service
+-   Violations may result in immediate client credential suspension
+-   Suspended credentials cannot be used for OAuth2 flows
+
+**Post-Registration Flow:**
+
+1. **Form Submission**: User submits completed registration form
+2. **Validation**: Server validates all input fields and checks rate limits
+3. **Credential Generation**: Generate secure client_id and client_secret
+4. **Database Storage**: Store hashed client_secret and application details
+5. **Display Credentials**: Show generated credentials with security warning
+6. **One-time Display**: Client secret cannot be retrieved again after page refresh
+
+### OAuth2 API Endpoints
+
+In accordance with [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749), the OAuth2 API endpoints will only accept a content type of `application/x-www-form-urlencoded`. JSON content is not permitted and will return an error.
+
+#### `POST /api/oauth2/authorize`
+
+Internal API endpoint for validating authorization request parameters.
+
+**Purpose:**
+
+-   Validates query parameters from `/oauth2/authorize` before displaying consent screen
+-   Verifies client_id, redirect_uri, scope validity
+-   Called internally before consent page loads
+
+**Parameters:**
+
+-   `client_id` (required): Client application identifier
+-   `redirect_uri` (required): Must match registered redirect URI
+-   `scope` (required): Requested scopes (space-separated)
+-   `response_type` (required): Must be "code"
+-   `state` (optional): CSRF protection parameter
+
 **Response:**
 
--   Redirects to PESU authentication
--   After auth, redirects to `redirect_uri` with authorization code
--   Authorization code expires in 10 minutes
+-   Success: Proceeds to show consent screen
+-   Error: Returns validation error preventing consent screen display
 
 #### `POST /api/oauth2/token`
 
@@ -198,7 +305,7 @@ Token exchange endpoint.
     "refresh_token": "def456uvw",
     "token_type": "Bearer",
     "expires_in": 604800,
-    "scope": "profile:name:read profile:email:read"
+    "scope": "profile:basic:read profile:contact:read"
 }
 ```
 
@@ -217,7 +324,7 @@ Token introspection endpoint ([RFC 7662](https://datatracker.ietf.org/doc/html/r
 ```json
 {
     "active": true,
-    "scope": "profile:name:read profile:email:read",
+    "scope": "profile:basic:read profile:contact:read",
     "client_id": "original_client",
     "username": "PES1201800001",
     "exp": 1723456789
@@ -270,27 +377,34 @@ _Note: Response includes only fields within granted scopes_
 
 ### Client Management
 
-#### `POST /api/oauth2/clients/register`
+#### `GET /oauth2/register`
 
-Register a new OAuth2 client (open registration).
+Client registration webpage for developers to register new OAuth2 applications.
 
-**Parameters:**
+**Features:**
+
+-   Web form for application registration
+-   Input validation and error handling
+-   Secure client secret generation and display
+-   One-time display of client credentials (for security)
+
+**Form Fields:**
 
 -   `name` (required): Application name
 -   `description` (optional): Application description
--   `redirect_uris` (required): Array of callback URLs
--   `scopes` (required): Array of requested scopes
+-   `redirect_uris` (required): List of callback URLs
+-   `scopes` (required): Selected requested scopes
 
-**Response:**
+**Post-Registration:**
 
-```json
-{
-    "client_id": "generated_client_id",
-    "client_secret": "generated_client_secret",
-    "name": "My App",
-    "redirect_uris": ["https://myapp.com/callback"],
-    "scopes": ["profile:name:read", "profile:email:read"]
-}
+After successful registration, the page displays the generated credentials:
+
+```
+Client ID: generated_client_id
+Client Secret: generated_client_secret (shown only once)
+Application Name: My App
+Redirect URIs: https://myapp.com/callback
+Scopes: profile:basic:read, profile:contact:read
 ```
 
 ### Admin Endpoints
@@ -358,94 +472,54 @@ All OAuth2 endpoints return standardized error responses following [RFC 6749](ht
 -   **500 Internal Server Error** - Server error
 -   **503 Service Unavailable** - PESU Auth temporarily unavailable
 
-## Monitoring & Logging _(Future Scope)_
-
-### Audit Logging
-
--   Token generation and revocation events
--   Failed authentication attempts
--   Admin actions and permission changes
--   Client registration and modifications
-
-### Security Monitoring
-
--   Rate limiting bypass attempts
--   Suspicious authorization patterns
--   Token usage anomalies
--   Geographic access patterns
-
-### Performance Metrics
-
--   Response times for OAuth2 endpoints
--   PESU Auth API latency and success rates
--   Database query performance
--   Token validation performance
-
-### Alerting
-
--   Failed authentication rate thresholds
--   PESU Auth service downtime
--   Database connection issues
--   Encryption key rotation failures
-
 ## Available Scopes
 
-Scopes follow a hierarchical structure: `{category}:{field}:{permission}`
+The OAuth2 server provides consolidated scopes for accessing different categories of user information.
 
-### Current Scope Categories
+### Scope Categories
 
-#### Profile Scopes
+#### `profile:basic:read`
 
-Access to user identity and personal information:
+Access to basic user identity information:
+- User's full name
+- PRN (PESU Registration Number)  
+- SRN (Student Registration Number)
 
--   `profile:name:read` - User's full name
--   `profile:prn:read` - PRN (PESU Registration Number)
--   `profile:srn:read` - SRN (Student Registration Number)
--   `profile:program:read` - Academic program
--   `profile:branch:read` - Academic branch/department
--   `profile:semester:read` - Current semester
--   `profile:section:read` - Class section
--   `profile:email:read` - Email address
--   `profile:phone:read` - Phone number
--   `profile:campus_code:read` - Campus code (1=RR, 2=EC)
--   `profile:campus:read` - Campus abbreviation
+#### `profile:academic:read`
 
-### Future Scope Categories
+Access to academic information:
+- Academic program
+- Branch/department
+- Current semester
+- Class section
+- Campus information
 
-#### Classes Scopes (Planned)
+#### `profile:contact:read`
 
-Access to academic class information:
-
--   `classes:enrolled:read` - List of enrolled classes
--   `classes:schedule:read` - Class schedules and timings
--   `classes:faculty:read` - Faculty information for classes
-
-#### Attendance Scopes (Planned)
-
-Access to attendance records:
-
--   `attendance:summary:read` - Overall attendance percentage
--   `attendance:detailed:read` - Detailed attendance records
-
-### Scope Permission Levels
-
--   `:read` - Read-only access to the specified data
--   `:write` - Write access (future implementation for user-updatable fields)
+Access to contact information:
+- Email address
+- Phone number
 
 ### Scope Usage Examples
 
 ```
 # Request only basic identity
-scope=profile:name:read profile:srn:read
+scope=profile:basic:read
 
-# Request contact information
-scope=profile:email:read profile:phone:read
+# Request academic information
+scope=profile:academic:read
 
-# Request full profile access
-scope=profile:name:read profile:prn:read profile:srn:read profile:program:read profile:branch:read profile:semester:read profile:section:read profile:email:read profile:phone:read profile:campus_code:read profile:campus:read
+# Request contact information  
+scope=profile:contact:read
 
-# Future: Mixed category access
-scope=profile:name:read classes:enrolled:read attendance:summary:read
+# Request multiple categories
+scope=profile:basic:read profile:academic:read
+
+# Request all profile information
+scope=profile:basic:read profile:academic:read profile:contact:read
+
+# Future: Write access to contact info
+scope=profile:contact:read profile:contact:write
 ```
 
 ## Token Strategy
@@ -466,45 +540,6 @@ Using `nanoid` instead of JWT for shorter tokens:
 -   Admin session: `nanoid(32)` → ~21 characters
 
 Token metadata stored in database with nanoid as lookup key.
-
-## Rate Limiting
-
--   **OAuth endpoints**: 1000 requests/hour per client
--   **User API (cached)**: 100 requests/hour per access token
--   **User API (fetch live)**: 12 requests/hour per user (1 per 5 min)
--   **Admin endpoints**: 500 requests/hour per admin
--   **Client registration**: 10 registrations/hour per IP
-
-## Security Features
-
-### Data Protection
-
--   User credentials encrypted with AES-256-GCM (via jose)
--   Client secrets hashed with bcryptjs before storage
--   Secure token generation with nanoid
--   PKCE support for public clients (future)
--   State parameter validation
-
-### Client Secret Security
-
--   Client secrets are hashed using bcryptjs with salt rounds
--   Plain text secrets are only shown once during registration
--   Secret verification during token exchange uses bcryptjs.compare()
--   No way to retrieve original secret after hashing
-
-### Encryption Key Rotation
-
--   Automated key rotation via GitHub Actions every 3 months
--   Manual rotation trigger available for immediate updates
--   Zero-downtime migration of existing encrypted credentials
--   Versioned encryption keys for seamless transitions
-
-### Headers & Middleware
-
--   Helmet for security headers
--   CORS configuration
--   Request validation with Zod
--   Rate limiting middleware
 
 ## PESU Auth Integration
 
@@ -610,7 +645,7 @@ Link: </api/v2/user>; rel="successor-version"
 
 ### Phase 3: Client Management
 
--   [ ] Client registration system
+-   [ ] Client registration webpage (`/oauth2/register`)
 -   [ ] Client authentication
 -   [ ] Redirect URI validation
 -   [ ] Scope validation
@@ -637,114 +672,79 @@ Link: </api/v2/user>; rel="successor-version"
 -   [ ] Developer documentation
 -   [ ] API examples and SDKs
 
-## Encryption Key Rotation
-
-### Overview
-
-The system supports automated encryption key rotation to enhance security. User credentials are encrypted with versioned keys, allowing seamless transitions during rotation.
-
-### GitHub Actions Setup
-
-#### Required Repository Secrets
-
-```
-MONGODB_URL                    # Database connection string
-ENCRYPTION_KEY                # Current encryption key (32 characters)
-ENCRYPTION_KEY_VERSION        # Current version number (e.g., "1")
-GH_ADMIN_TOKEN                # GitHub Personal Access Token (repo scope)
-NETLIFY_ACCESS_TOKEN          # Netlify API token
-NETLIFY_SITE_ID               # Netlify site identifier
-```
-
-#### Implementation Files
-
-The key rotation system requires two files:
-
-1. **`.github/workflows/key-rotation.yml`** - GitHub Actions workflow
-
-    - Manual trigger via `workflow_dispatch`
-    - Automatic quarterly rotation via cron schedule
-    - Generates new encryption keys securely
-    - Updates GitHub secrets and Netlify environment variables
-    - Masks sensitive values in action logs
-
-2. **`scripts/rotate-keys.js`** - Database migration script
-
-    - Finds users with outdated encryption key versions
-    - Decrypts credentials with current key
-    - Re-encrypts with new key version
-    - Updates user records with new encryption version
-    - Provides migration progress logging
-
-### Usage
-
-#### Manual Rotation
-
-Trigger rotation immediately through GitHub Actions interface or via GitHub CLI.
-
-#### Automatic Schedule
-
--   Runs every 3 months automatically
--   Updates all platforms simultaneously
--   Zero downtime for users
-
-### Security Benefits
-
--   **Periodic rotation** limits exposure time of compromised keys
--   **Versioned keys** allow gradual migration without service interruption
--   **Automated process** eliminates manual key management errors
--   **Cross-platform sync** ensures consistency across GitHub and Netlify
-
 ## Usage Examples
 
 ### Authorization Flow
 
 ```
-1. Redirect user to authorization endpoint
-GET /api/oauth2/authorize?client_id=abc&redirect_uri=https://app.com/callback&scope=profile%3Aname%3Aread%20profile%3Aemail%3Aread&response_type=code&state=xyz
+1. Client redirects user to authorization webpage (GET request)
+GET /oauth2/authorize?client_id=abc&redirect_uri=https://app.com/callback&scope=profile%3Abasic%3Aread%20profile%3Acontact%3Aread&response_type=code&state=xyz
 
-2. User authenticates with PESU credentials
+2. OAuth server checks for existing user session
+   - If no session: Redirect to /oauth2/login
+   - User authenticates with PESU credentials
+   - Redirect back to /oauth2/authorize with original parameters
 
-3. User grants/denies consent
+3. Server validates request parameters via internal API
+POST /api/oauth2/authorize (internal validation)
 
-4. Redirect back with authorization code
+4. If validation passes, display consent screen to user
+   - Shows client app requesting specific permissions
+   - User sees "Continue" or "Deny" options
+
+5. User clicks "Continue" - consent granted
+
+6. Server generates authorization code and redirects back to client
 https://app.com/callback?code=auth_code&state=xyz
 
-5. Exchange code for tokens
+7. Client exchanges code for tokens
 POST /api/oauth2/token
-{
-  "grant_type": "authorization_code",
-  "code": "auth_code",
-  "client_id": "abc",
-  "client_secret": "secret",
-  "redirect_uri": "https://app.com/callback"
-}
+Content-Type: application/x-www-form-urlencoded
 
-6. Use access token to fetch user data
+grant_type=authorization_code&code=auth_code&client_id=abc&client_secret=secret&redirect_uri=https://app.com/callback
+
+8. Use access token to fetch user data
 GET /api/v1/user
 Authorization: Bearer access_token
 ```
 
 ### Client Registration
 
-```javascript
-const response = await fetch("/api/oauth2/clients/register", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-        name: "My PESU App",
-        description: "An app for PESU students",
-        redirect_uris: ["https://myapp.com/callback"],
-        scopes: [
-            "profile:name:read",
-            "profile:email:read",
-            "profile:branch:read",
-        ],
-    }),
-});
+To register a new OAuth2 client application:
 
-const { client_id, client_secret } = await response.json();
-```
+**Prerequisites:**
+
+-   Must be a PESU student with a verified email address
+-   PESU credentials required for authentication
+
+**Registration Process:**
+
+1. **Authenticate**: Login with your PESU credentials
+2. **Email Verification Check**: System verifies your email status with PESU records
+3. **Visit the registration page**: Navigate to `/oauth2/register`
+4. **Fill out the form**:
+    - Application name: "My PESU App"
+    - Description: "An app for PESU students" (optional)
+    - Redirect URIs: Add your callback URLs (e.g., `https://myapp.com/callback`)
+    - Scopes: Select required permissions:
+        - `profile:basic:read`
+        - `profile:contact:read`
+        - `profile:academic:read`
+5. **Accept Terms**: Agree to PESU OAuth2 Terms of Service
+6. **Submit the form**: Click "Register Application"
+7. **Save your credentials**: The page will display your client credentials **only once**:
+    ```
+    Client ID: abc123xyz
+    Client Secret: def456uvw (copy this immediately - it won't be shown again)
+    ```
+8. **Implement OAuth2 flow** in your application using these credentials
+
+**Important Notes:**
+
+-   The client secret is displayed only once for security reasons
+-   Copy and store credentials securely before leaving the page
+-   Violations of terms may result in immediate credential suspension
+-   Suspended credentials cannot be used for OAuth2 authentication flows
 
 ## Contributing
 
