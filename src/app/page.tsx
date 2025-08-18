@@ -14,6 +14,7 @@ export default function Home() {
           href="https://github.com/pesu-dev/oauth2"
           target="_blank"
           rel="noopener noreferrer"
+          aria-label="Visit project repository on GitHub"
           className="rounded-full border border-gray-300 dark:border-gray-700 px-6 py-2 font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
         >
           Learn More
