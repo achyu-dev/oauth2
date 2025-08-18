@@ -8,12 +8,12 @@ This OAuth2 server allows applications to authenticate PESU students and access 
 
 ## Technical Stack
 
--   **Framework**: Next.js 15.4.6 with TypeScript and App Router
--   **Database**: MongoDB with Prisma ORM
--   **Authentication**: Integration with PESU Auth API
--   **Tokens**: nanoid-based tokens (shorter than JWT)
--   **Security**: jose, bcryptjs, helmet
--   **Package Manager**: pnpm
+- **Framework**: Next.js 15.4.6 with TypeScript and App Router
+- **Database**: MongoDB with Prisma ORM
+- **Authentication**: Integration with PESU Auth API
+- **Tokens**: nanoid-based tokens (shorter than JWT)
+- **Security**: jose, bcryptjs, helmet
+- **Package Manager**: pnpm
 
 ## Security
 
@@ -23,15 +23,15 @@ For comprehensive security information including data protection, encryption, ra
 
 ```json
 {
-    "dependencies": {
-        "@prisma/client": "latest",
-        "prisma": "latest",
-        "jose": "latest", // For PESU credential encryption
-        "bcryptjs": "latest", // For client secret hashing
-        "nanoid": "latest", // For OAuth2 and admin session tokens
-        "zod": "latest", // For request validation
-        "helmet": "latest" // For security headers
-    }
+  "dependencies": {
+    "@prisma/client": "latest",
+    "prisma": "latest",
+    "jose": "latest", // For PESU credential encryption
+    "bcryptjs": "latest", // For client secret hashing
+    "nanoid": "latest", // For OAuth2 and admin session tokens
+    "zod": "latest", // For request validation
+    "helmet": "latest" // For security headers
+  }
 }
 ```
 
@@ -162,8 +162,8 @@ model AdminSession {
 
 The OAuth2 implementation separates user-facing web interfaces from backend API endpoints:
 
--   **Web Interfaces** (`/oauth2/*`): User-facing pages for authorization flow
--   **API Endpoints** (`/api/oauth2/*`): Backend processing and token management
+- **Web Interfaces** (`/oauth2/*`): User-facing pages for authorization flow
+- **API Endpoints** (`/api/oauth2/*`): Backend processing and token management
 
 ### OAuth2 Web Interfaces
 
@@ -173,14 +173,14 @@ User authentication page for the OAuth2 server.
 
 **Purpose:**
 
--   Authenticates users with PESU credentials
--   Creates user session for OAuth2 server
--   Redirects back to authorization flow after successful login
+- Authenticates users with PESU credentials
+- Creates user session for OAuth2 server
+- Redirects back to authorization flow after successful login
 
 **Query Parameters:**
 
--   `redirect_uri` (automatic): URL to redirect back to after login
--   Preserves original authorization parameters for seamless flow continuation
+- `redirect_uri` (automatic): URL to redirect back to after login
+- Preserves original authorization parameters for seamless flow continuation
 
 #### `GET /oauth2/authorize`
 
@@ -188,11 +188,11 @@ User-facing authorization webpage where the OAuth2 flow begins.
 
 **Query Parameters:**
 
--   `client_id` (required): Client application identifier
--   `redirect_uri` (required): Callback URL
--   `scope` (required): Requested scopes (space-separated)
--   `response_type` (required): Must be "code"
--   `state` (optional): CSRF protection
+- `client_id` (required): Client application identifier
+- `redirect_uri` (required): Callback URL
+- `scope` (required): Requested scopes (space-separated)
+- `response_type` (required): Must be "code"
+- `state` (optional): CSRF protection
 
 **Detailed Flow:**
 
@@ -202,9 +202,9 @@ User-facing authorization webpage where the OAuth2 flow begins.
 4. **Post-Login Redirect**: After successful login, redirect back to `/oauth2/authorize` with original parameters
 5. **Parameter Validation**: Before page loads, validate query parameters using `POST /api/oauth2/authorize`
 6. **Consent Screen**: If validation passes, display consent screen showing:
-    - Client application requesting access
-    - Specific permissions/scopes being requested
-    - Redirect destination after authorization
+   - Client application requesting access
+   - Specific permissions/scopes being requested
+   - Redirect destination after authorization
 7. **User Decision**: User clicks "Continue" (approve) or "Deny"
 8. **Code Generation**: On approval, generate temporary authorization code
 9. **Final Redirect**: Redirect to client's `redirect_uri` with code and state (if provided)
@@ -216,37 +216,37 @@ Client registration webpage for developers to register new OAuth2 applications.
 
 **Eligibility Requirements:**
 
--   Must be a PESU student with a verified email address
--   Must authenticate with PESU credentials before accessing registration form
--   Email verification status is checked against PESU records
+- Must be a PESU student with a verified email address
+- Must authenticate with PESU credentials before accessing registration form
+- Email verification status is checked against PESU records
 
 **Purpose:**
 
--   Provides a secure web form for OAuth2 client registration
--   Handles input validation and error display
--   Generates and securely displays client credentials
--   Implements rate limiting for registration attempts
+- Provides a secure web form for OAuth2 client registration
+- Handles input validation and error display
+- Generates and securely displays client credentials
+- Implements rate limiting for registration attempts
 
 **Form Fields:**
 
--   `name` (required): Application name for user recognition
--   `description` (optional): Brief description of the application
--   `redirect_uris` (required): List of valid callback URLs for OAuth2 flow
--   `scopes` (required): Checkbox selection of requested permission scopes
+- `name` (required): Application name for user recognition
+- `description` (optional): Brief description of the application
+- `redirect_uris` (required): List of valid callback URLs for OAuth2 flow
+- `scopes` (required): Checkbox selection of requested permission scopes
 
 **Security Features:**
 
--   CSRF protection with form tokens
--   Input validation and sanitization
--   Rate limiting (10 registrations/hour per IP)
--   Client secret displayed only once for security
--   Secure random generation of client credentials
+- CSRF protection with form tokens
+- Input validation and sanitization
+- Rate limiting (10 registrations/hour per IP)
+- Client secret displayed only once for security
+- Secure random generation of client credentials
 
 **Terms Compliance:**
 
--   All registered applications must comply with PESU OAuth2 Terms of Service
--   Violations may result in immediate client credential suspension
--   Suspended credentials cannot be used for OAuth2 flows
+- All registered applications must comply with PESU OAuth2 Terms of Service
+- Violations may result in immediate client credential suspension
+- Suspended credentials cannot be used for OAuth2 flows
 
 **Post-Registration Flow:**
 
@@ -267,22 +267,22 @@ Internal API endpoint for validating authorization request parameters.
 
 **Purpose:**
 
--   Validates query parameters from `/oauth2/authorize` before displaying consent screen
--   Verifies client_id, redirect_uri, scope validity
--   Called internally before consent page loads
+- Validates query parameters from `/oauth2/authorize` before displaying consent screen
+- Verifies client_id, redirect_uri, scope validity
+- Called internally before consent page loads
 
 **Parameters:**
 
--   `client_id` (required): Client application identifier
--   `redirect_uri` (required): Must match registered redirect URI
--   `scope` (required): Requested scopes (space-separated)
--   `response_type` (required): Must be "code"
--   `state` (optional): CSRF protection parameter
+- `client_id` (required): Client application identifier
+- `redirect_uri` (required): Must match registered redirect URI
+- `scope` (required): Requested scopes (space-separated)
+- `response_type` (required): Must be "code"
+- `state` (optional): CSRF protection parameter
 
 **Response:**
 
--   Success: Proceeds to show consent screen
--   Error: Returns validation error preventing consent screen display
+- Success: Proceeds to show consent screen
+- Error: Returns validation error preventing consent screen display
 
 #### `POST /api/oauth2/token`
 
@@ -290,22 +290,22 @@ Token exchange endpoint.
 
 **Parameters:**
 
--   `grant_type` (required): "authorization_code" or "refresh_token"
--   `code` (required for auth code): Authorization code
--   `refresh_token` (required for refresh): Refresh token
--   `client_id` (required): Client identifier
--   `client_secret` (required): Client secret
--   `redirect_uri` (required for auth code): Must match authorize request
+- `grant_type` (required): "authorization_code" or "refresh_token"
+- `code` (required for auth code): Authorization code
+- `refresh_token` (required for refresh): Refresh token
+- `client_id` (required): Client identifier
+- `client_secret` (required): Client secret
+- `redirect_uri` (required for auth code): Must match authorize request
 
 **Response:**
 
 ```json
 {
-    "access_token": "abc123xyz",
-    "refresh_token": "def456uvw",
-    "token_type": "Bearer",
-    "expires_in": 604800,
-    "scope": "profile:basic:read profile:contact:read"
+  "access_token": "abc123xyz",
+  "refresh_token": "def456uvw",
+  "token_type": "Bearer",
+  "expires_in": 604800,
+  "scope": "profile:basic:read profile:contact:read"
 }
 ```
 
@@ -315,19 +315,19 @@ Token introspection endpoint ([RFC 7662](https://datatracker.ietf.org/doc/html/r
 
 **Parameters:**
 
--   `token` (required): Token to introspect
--   `client_id` (required): Client identifier
--   `client_secret` (required): Client secret
+- `token` (required): Token to introspect
+- `client_id` (required): Client identifier
+- `client_secret` (required): Client secret
 
 **Response:**
 
 ```json
 {
-    "active": true,
-    "scope": "profile:basic:read profile:contact:read",
-    "client_id": "original_client",
-    "username": "PES1201800001",
-    "exp": 1723456789
+  "active": true,
+  "scope": "profile:basic:read profile:contact:read",
+  "client_id": "original_client",
+  "username": "PES1201800001",
+  "exp": 1723456789
 }
 ```
 
@@ -337,9 +337,9 @@ Token revocation endpoint.
 
 **Parameters:**
 
--   `token` (required): Token to revoke
--   `client_id` (required): Client identifier
--   `client_secret` (required): Client secret
+- `token` (required): Token to revoke
+- `client_id` (required): Client identifier
+- `client_secret` (required): Client secret
 
 ### User Data API
 
@@ -349,27 +349,27 @@ Get user profile information.
 
 **Headers:**
 
--   `Authorization: Bearer {access_token}`
+- `Authorization: Bearer {access_token}`
 
 **Query Parameters:**
 
--   `fetch_live` (optional): Set to "true" for live data fetch from PESU auth
+- `fetch_live` (optional): Set to "true" for live data fetch from PESU auth
 
 **Response:**
 
 ```json
 {
-    "name": "Johnny Blaze",
-    "prn": "PES1201800001",
-    "srn": "PES1201800001",
-    "program": "Bachelor of Technology",
-    "branch": "Computer Science and Engineering",
-    "semester": "NA",
-    "section": "NA",
-    "email": "johnnyblaze@gmail.com",
-    "phone": "1234567890",
-    "campus_code": 1,
-    "campus": "RR"
+  "name": "Johnny Blaze",
+  "prn": "PES1201800001",
+  "srn": "PES1201800001",
+  "program": "Bachelor of Technology",
+  "branch": "Computer Science and Engineering",
+  "semester": "NA",
+  "section": "NA",
+  "email": "johnnyblaze@gmail.com",
+  "phone": "1234567890",
+  "campus_code": 1,
+  "campus": "RR"
 }
 ```
 
@@ -383,17 +383,17 @@ Client registration webpage for developers to register new OAuth2 applications.
 
 **Features:**
 
--   Web form for application registration
--   Input validation and error handling
--   Secure client secret generation and display
--   One-time display of client credentials (for security)
+- Web form for application registration
+- Input validation and error handling
+- Secure client secret generation and display
+- One-time display of client credentials (for security)
 
 **Form Fields:**
 
--   `name` (required): Application name
--   `description` (optional): Application description
--   `redirect_uris` (required): List of callback URLs
--   `scopes` (required): Selected requested scopes
+- `name` (required): Application name
+- `description` (optional): Application description
+- `redirect_uris` (required): List of callback URLs
+- `scopes` (required): Selected requested scopes
 
 **Post-Registration:**
 
@@ -429,9 +429,9 @@ All OAuth2 endpoints return standardized error responses following [RFC 6749](ht
 
 ```json
 {
-    "error": "invalid_request",
-    "error_description": "The request is missing a required parameter",
-    "error_uri": "https://your-domain.com/docs/errors#invalid_request"
+  "error": "invalid_request",
+  "error_description": "The request is missing a required parameter",
+  "error_uri": "https://your-domain.com/docs/errors#invalid_request"
 }
 ```
 
@@ -439,38 +439,38 @@ All OAuth2 endpoints return standardized error responses following [RFC 6749](ht
 
 #### Authorization Endpoint Errors
 
--   **`invalid_request`** - Missing or malformed parameters
--   **`unauthorized_client`** - Client not authorized for this grant type
--   **`access_denied`** - User denied the authorization request
--   **`unsupported_response_type`** - Response type not supported
--   **`invalid_scope`** - Requested scope is invalid or unknown
--   **`server_error`** - Internal server error occurred
--   **`temporarily_unavailable`** - Service temporarily overloaded
+- **`invalid_request`** - Missing or malformed parameters
+- **`unauthorized_client`** - Client not authorized for this grant type
+- **`access_denied`** - User denied the authorization request
+- **`unsupported_response_type`** - Response type not supported
+- **`invalid_scope`** - Requested scope is invalid or unknown
+- **`server_error`** - Internal server error occurred
+- **`temporarily_unavailable`** - Service temporarily overloaded
 
 #### Token Endpoint Errors
 
--   **`invalid_request`** - Missing or malformed parameters
--   **`invalid_client`** - Client authentication failed
--   **`invalid_grant`** - Authorization code/refresh token invalid
--   **`unauthorized_client`** - Client not authorized for this grant
--   **`unsupported_grant_type`** - Grant type not supported
--   **`invalid_scope`** - Requested scope exceeds granted scope
+- **`invalid_request`** - Missing or malformed parameters
+- **`invalid_client`** - Client authentication failed
+- **`invalid_grant`** - Authorization code/refresh token invalid
+- **`unauthorized_client`** - Client not authorized for this grant
+- **`unsupported_grant_type`** - Grant type not supported
+- **`invalid_scope`** - Requested scope exceeds granted scope
 
 #### User API Errors
 
--   **`invalid_token`** - Access token expired or invalid
--   **`insufficient_scope`** - Token lacks required scope for resource
--   **`rate_limit_exceeded`** - Too many requests (includes retry-after header)
+- **`invalid_token`** - Access token expired or invalid
+- **`insufficient_scope`** - Token lacks required scope for resource
+- **`rate_limit_exceeded`** - Too many requests (includes retry-after header)
 
 ### HTTP Status Codes
 
--   **400 Bad Request** - Invalid request parameters
--   **401 Unauthorized** - Authentication required or failed
--   **403 Forbidden** - Insufficient permissions
--   **404 Not Found** - Resource not found
--   **429 Too Many Requests** - Rate limit exceeded
--   **500 Internal Server Error** - Server error
--   **503 Service Unavailable** - PESU Auth temporarily unavailable
+- **400 Bad Request** - Invalid request parameters
+- **401 Unauthorized** - Authentication required or failed
+- **403 Forbidden** - Insufficient permissions
+- **404 Not Found** - Resource not found
+- **429 Too Many Requests** - Rate limit exceeded
+- **500 Internal Server Error** - Server error
+- **503 Service Unavailable** - PESU Auth temporarily unavailable
 
 ## Available Scopes
 
@@ -481,13 +481,15 @@ The OAuth2 server provides consolidated scopes for accessing different categorie
 #### `profile:basic:read`
 
 Access to basic user identity information:
+
 - User's full name
-- PRN (PESU Registration Number)  
+- PRN (PESU Registration Number)
 - SRN (Student Registration Number)
 
 #### `profile:academic:read`
 
 Access to academic information:
+
 - Academic program
 - Branch/department
 - Current semester
@@ -497,6 +499,7 @@ Access to academic information:
 #### `profile:contact:read`
 
 Access to contact information:
+
 - Email address
 - Phone number
 
@@ -509,7 +512,7 @@ scope=profile:basic:read
 # Request academic information
 scope=profile:academic:read
 
-# Request contact information  
+# Request contact information
 scope=profile:contact:read
 
 # Request multiple categories
@@ -526,18 +529,18 @@ scope=profile:contact:read profile:contact:write
 
 ### Token Types & Expiration
 
--   **Access Tokens**: 7 days (nanoid, 32 chars)
--   **Refresh Tokens**: 30 days (nanoid, 48 chars)
--   **Authorization Codes**: 10 minutes (nanoid, 24 chars)
--   **Admin Sessions**: 8 hours (nanoid, 32 chars)
+- **Access Tokens**: 7 days (nanoid, 32 chars)
+- **Refresh Tokens**: 30 days (nanoid, 48 chars)
+- **Authorization Codes**: 10 minutes (nanoid, 24 chars)
+- **Admin Sessions**: 8 hours (nanoid, 32 chars)
 
 ### Token Format
 
 Using `nanoid` instead of JWT for shorter tokens:
 
--   Access token: `nanoid(32)` → ~21 characters
--   Refresh token: `nanoid(48)` → ~32 characters
--   Admin session: `nanoid(32)` → ~21 characters
+- Access token: `nanoid(32)` → ~21 characters
+- Refresh token: `nanoid(48)` → ~32 characters
+- Admin session: `nanoid(32)` → ~21 characters
 
 Token metadata stored in database with nanoid as lookup key.
 
@@ -545,9 +548,9 @@ Token metadata stored in database with nanoid as lookup key.
 
 ### Caching Strategy
 
--   Cache user profiles in MongoDB
--   Reduce PESU auth API calls
--   Fetch live option for real-time data
+- Cache user profiles in MongoDB
+- Reduce PESU auth API calls
+- Fetch live option for real-time data
 
 ### Fetch Live Flow
 
@@ -559,8 +562,8 @@ Token metadata stored in database with nanoid as lookup key.
 
 ### Rate Limits
 
--   Standard cache hits: No additional limits
--   Fetch live: Stricter limits (1 per 5 minutes)
+- Standard cache hits: No additional limits
+- Fetch live: Stricter limits (1 per 5 minutes)
 
 ## Client Consent Flow
 
@@ -568,25 +571,25 @@ Following Discord OAuth2 model:
 
 ### Consent Options
 
--   **Auto-approve**: For trusted clients (admin-configured)
--   **Skip consent**: Same client + user + same/subset scopes
--   **Force consent**: Always show consent screen (default)
+- **Auto-approve**: For trusted clients (admin-configured)
+- **Skip consent**: Same client + user + same/subset scopes
+- **Force consent**: Always show consent screen (default)
 
 ### Consent Screen
 
--   Clear scope descriptions
--   Application information
--   Allow/Deny options
--   Remember choice option
+- Clear scope descriptions
+- Application information
+- Allow/Deny options
+- Remember choice option
 
 ## API Versioning
 
 ### Strategy
 
--   **Base URL**: `/api/` automatically points to the latest version
--   **Versioned URLs**: `/api/v{version}/` for specific versions (e.g., `/api/v1/`, `/api/v2/`)
--   **Graceful deprecation**: 12 months support for older versions
--   **Clear migration documentation** for version transitions
+- **Base URL**: `/api/` automatically points to the latest version
+- **Versioned URLs**: `/api/v{version}/` for specific versions (e.g., `/api/v1/`, `/api/v2/`)
+- **Graceful deprecation**: 12 months support for older versions
+- **Clear migration documentation** for version transitions
 
 ### URL Structure Example
 
@@ -629,48 +632,48 @@ Link: </api/v2/user>; rel="successor-version"
 
 ### Phase 1: Core Infrastructure
 
--   [ ] Prisma setup with MongoDB
--   [ ] Database schema implementation
--   [ ] PESU auth integration service
--   [ ] Basic token management
--   [ ] User profile caching
+- [ ] Prisma setup with MongoDB
+- [ ] Database schema implementation
+- [ ] PESU auth integration service
+- [ ] Basic token management
+- [ ] User profile caching
 
 ### Phase 2: OAuth2 Endpoints
 
--   [ ] Authorization endpoint (`/oauth2/authorize`)
--   [ ] Token endpoint (`/oauth2/token`)
--   [ ] User info endpoint (`/v1/user`)
--   [ ] Token introspection (`/oauth2/introspect`)
--   [ ] Token revocation (`/oauth2/revoke`)
+- [ ] Authorization endpoint (`/oauth2/authorize`)
+- [ ] Token endpoint (`/oauth2/token`)
+- [ ] User info endpoint (`/v1/user`)
+- [ ] Token introspection (`/oauth2/introspect`)
+- [ ] Token revocation (`/oauth2/revoke`)
 
 ### Phase 3: Client Management
 
--   [ ] Client registration webpage (`/oauth2/register`)
--   [ ] Client authentication
--   [ ] Redirect URI validation
--   [ ] Scope validation
+- [ ] Client registration webpage (`/oauth2/register`)
+- [ ] Client authentication
+- [ ] Redirect URI validation
+- [ ] Scope validation
 
 ### Phase 4: Security & Middleware
 
--   [ ] Rate limiting implementation
--   [ ] Request validation middleware
--   [ ] Security headers setup
--   [ ] Encryption service for credentials
+- [ ] Rate limiting implementation
+- [ ] Request validation middleware
+- [ ] Security headers setup
+- [ ] Encryption service for credentials
 
 ### Phase 5: Admin & Monitoring
 
--   [ ] Admin authentication system
--   [ ] Client management interface
--   [ ] Token monitoring dashboard
--   [ ] Usage analytics
+- [ ] Admin authentication system
+- [ ] Client management interface
+- [ ] Token monitoring dashboard
+- [ ] Usage analytics
 
 ### Phase 6: Frontend & Documentation
 
--   [ ] OAuth consent screen
--   [ ] Client registration form
--   [ ] Admin dashboard
--   [ ] Developer documentation
--   [ ] API examples and SDKs
+- [ ] OAuth consent screen
+- [ ] Client registration form
+- [ ] Admin dashboard
+- [ ] Developer documentation
+- [ ] API examples and SDKs
 
 ## Usage Examples
 
@@ -714,8 +717,8 @@ To register a new OAuth2 client application:
 
 **Prerequisites:**
 
--   Must be a PESU student with a verified email address
--   PESU credentials required for authentication
+- Must be a PESU student with a verified email address
+- PESU credentials required for authentication
 
 **Registration Process:**
 
@@ -723,28 +726,28 @@ To register a new OAuth2 client application:
 2. **Email Verification Check**: System verifies your email status with PESU records
 3. **Visit the registration page**: Navigate to `/oauth2/register`
 4. **Fill out the form**:
-    - Application name: "My PESU App"
-    - Description: "An app for PESU students" (optional)
-    - Redirect URIs: Add your callback URLs (e.g., `https://myapp.com/callback`)
-    - Scopes: Select required permissions:
-        - `profile:basic:read`
-        - `profile:contact:read`
-        - `profile:academic:read`
+   - Application name: "My PESU App"
+   - Description: "An app for PESU students" (optional)
+   - Redirect URIs: Add your callback URLs (e.g., `https://myapp.com/callback`)
+   - Scopes: Select required permissions:
+     - `profile:basic:read`
+     - `profile:contact:read`
+     - `profile:academic:read`
 5. **Accept Terms**: Agree to PESU OAuth2 Terms of Service
 6. **Submit the form**: Click "Register Application"
 7. **Save your credentials**: The page will display your client credentials **only once**:
-    ```
-    Client ID: abc123xyz
-    Client Secret: def456uvw (copy this immediately - it won't be shown again)
-    ```
+   ```
+   Client ID: abc123xyz
+   Client Secret: def456uvw (copy this immediately - it won't be shown again)
+   ```
 8. **Implement OAuth2 flow** in your application using these credentials
 
 **Important Notes:**
 
--   The client secret is displayed only once for security reasons
--   Copy and store credentials securely before leaving the page
--   Violations of terms may result in immediate credential suspension
--   Suspended credentials cannot be used for OAuth2 authentication flows
+- The client secret is displayed only once for security reasons
+- Copy and store credentials securely before leaving the page
+- Violations of terms may result in immediate credential suspension
+- Suspended credentials cannot be used for OAuth2 authentication flows
 
 ## Contributing
 

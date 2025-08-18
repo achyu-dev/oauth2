@@ -3,6 +3,7 @@
 Thank you for your interest in contributing to the PESU OAuth2 provider! This document provides guidelines and instructions for setting up your development environment and contributing to the project.
 
 Table of Contents:
+
 - [Getting Started](#getting-started)
 - [🛠️ Development Environment Setup](#🛠️-development-environment-setup)
 - [🧰 Running the Application](#🧰-running-the-application)
@@ -21,13 +22,19 @@ Table of Contents:
 The standard workflow for contributing is as follows:
 
 1. Clone the repository to your local machine, or fork it and then clone your fork.
-2. Create a new branch with the format `(discord-username)/feature-description` for your feature or bug fix.
-3. Make your changes and commit them with clear, descriptive messages.
-4. Push your branch to the repository (or your fork).
-5. Create a Pull Request (PR) against the repository's `dev` branch (not `main`).
-6. Follow the PR template when creating your pull request.
-7. Wait for review and feedback from the maintainers, address any comments or suggestions.
-8. Once approved, your changes will be merged into the `dev` branch.
+2. Install git hooks by running the following command:
+
+```bash
+pnpm hooks:install
+```
+
+3. Create a new branch with the format `(discord-username)/feature-description` for your feature or bug fix.
+4. Make your changes and commit them with clear, descriptive messages.
+5. Push your branch to the repository (or your fork).
+6. Create a Pull Request (PR) against the repository's `dev` branch (not `main`).
+7. Follow the PR template when creating your pull request.
+8. Wait for review and feedback from the maintainers, address any comments or suggestions.
+9. Once approved, your changes will be merged into the `dev` branch.
 
 ⚠️ **Important**: Direct PRs to `main` will be closed. All contributions must target the `dev` branch.
 
@@ -222,15 +229,15 @@ To keep the codebase clean and maintainable, please follow these conventions:
 
 We use GitHub labels to categorize issues and PRs. Here's a quick guide to what they mean:
 
-| Label | Description |
-|-------|-------------|
+| Label              | Description                                     |
+| ------------------ | ----------------------------------------------- |
 | `good first issue` | Beginner-friendly, simple issues to get started |
-| `bug` | Something is broken or not working as intended |
-| `enhancement` | Proposed improvements or new features |
-| `documentation` | Docs, comments, or README-related updates |
-| `security` | Security-related issues or improvements |
-| `question` | Open questions or clarifications |
-| `help wanted` | Maintainers are seeking help or collaboration |
+| `bug`              | Something is broken or not working as intended  |
+| `enhancement`      | Proposed improvements or new features           |
+| `documentation`    | Docs, comments, or README-related updates       |
+| `security`         | Security-related issues or improvements         |
+| `question`         | Open questions or clarifications                |
+| `help wanted`      | Maintainers are seeking help or collaboration   |
 
 When creating or working on an issue/PR, feel free to suggest an appropriate label if not already applied.
 

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["src/app/**/*.{ts,tsx}"],
+      "project": [
+        "src/**/*.{ts,tsx}",
+        "!src/**/*.test.{ts,tsx}",
+        "!src/**/*.spec.{ts,tsx}"
+      ],
+      "ignore": [
+        "next.config.ts",
+        "postcss.config.mjs",
+        "eslint.config.mjs",
+        "src/app/globals.css",
+        "public/**/*",
+        ".next/**/*",
+        "out/**/*"
+      ],
+      "ignoreDependencies": [
+        "tailwindcss",
+        "eslint-config-next",
+        "eslint-config-prettier"
+      ]
+    }
+  }
+}
