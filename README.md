@@ -1,5 +1,7 @@
 # PESU OAuth2
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/75f33555-7f98-46ca-b085-51104a39f986/deploy-status)](https://app.netlify.com/projects/pesuoauth2/deploys)
+
 A comprehensive OAuth2 provider built with Next.js, integrating with PESU Academy authentication system, fully compliant with [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749) standards.
 
 ## Overview
